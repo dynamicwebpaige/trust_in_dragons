@@ -1,0 +1,5 @@
+recursive-include gadfly *.py
+recursive-include test *.py
+recursive-include doc *.txt *.py
+recursive-include kjbuckets *.c *.py *.pyd *-patch
+include run_tests *.txt

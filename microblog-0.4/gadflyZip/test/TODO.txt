@@ -1,0 +1,23 @@
+missing:
+semantics.BoundMinus
+semantics.BoundSubtraction
+semantics.BTor_pred.negated_constraints
+multiple semantics.BTor_pred
+semantics.BTor_pred.invert
+semantics.BTnot_pred.detrivialize
+semantics.BTnot_pred.negated_constraints
+
+semantics.BTand_pred.negated_constraints
+multiple semantics.BTand_pred and BTor
+semantics.BTand_pred.invert
+QuantLE
+QuantGE
+
+
+
+more needed for:
+semantics.BoundDivision
+constants
+between
+exists
+expr in lit

@@ -1,0 +1,133 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 
+<script type="text/javascript">
+function set_openid(openid, pr)
+{
+    u = openid.search('<username>');
+    if (u != -1) {
+        // openid requires username
+        user = prompt('Enter your ' + pr + ' username:');
+        openid = openid.substr(0, u) + user;
+    }
+    form = document.forms['login'];
+    form.elements['openid'].value = openid;
+}
+</script>
+-->
+
+  <head>
+    <meta charset="utf-8">
+    <title>Trust in Dragons</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Donate to your favorite non-profit project and keep track of their accountability in a gamification environment">
+    <meta name="author" content="Paige, Christine, Jess and Prashant">
+
+    <!-- Le styles
+    <link href="css/bootstrap.css" rel="stylesheet">-->
+<link type="text/css" href="static/css/bootstrap.css" rel="stylesheet">
+<style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+
+      .form-signin {
+        max-width: 300px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+      .form-signin .form-signin-heading,
+      .form-signin .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-signin input[type="text"],
+      .form-signin input[type="number"]
+      .form-signin input[type="password"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+
+    </style>
+ <!--   <link href="css/bootstrap-responsive.css" rel="stylesheet"> -->
+<link "text/css" href="static/css/bootstrap-responsive.css" rel="stylesheet">
+
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../assets/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">TrustInDragons</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="/about">About</a></li>
+              <li><a href="/admin">Start campaign</a></li>
+              <li><a href="/pyladies">Projects</a></li>
+              <li><a href="/contact">Contact</a></li>
+            </ul>
+            <form class="navbar-form pull-right">
+              <button href="/index" type="submit" class="btn">Sign in</button>
+            </form>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+    <div class="row">
+         <div class="span8">
+        <form class="form-signin">
+        <h2 class="form-signin-heading">Become a Dragonborn!</h2>
+        <form action="" method="post" name="login">
+        {{form.hidden_tag()}}
+
+<!--
+    	<p>
+        Please enter your OpenID, or select one of the providers below:<br> 
+	{ {form.openid(size=80)}}
+        { % for error in form.errors.openid %}
+        <span style="color: red;">[{ {error}}]</span>
+        { % endfor %}<br>
+        |{ % for pr in providers %}
+        <a href="javascript:set_openid('{ {pr.url}}', '{ {pr.name}}');">{ {pr.name}}</a> |
+        { % endfor %}
+	</p>
+    -->
+	<p> Please enter your contact details. We won't sell your data or do anything fishy with it. Word of the dragons! Promise. :)
+	 <p> Your Name {{form.name}} </p>
+	 <p> Email Address{{form.email}} </p>
+	 <p> Phone Number {{form.phone_number}} </p>
+	</p>
+    <p>{{form.remember_me}} Remember Me</p>
+    <p><input type="submit" value="Sign In"></p>
+</form>
+{% endblock %}
