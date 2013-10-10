@@ -1,0 +1,105 @@
+<!-- extend base layout -->
+<!-- 
+<script type="text/javascript">
+function set_openid(openid, pr)
+{
+    u = openid.search('<username>');
+    if (u != -1) {
+        // openid requires username
+        user = prompt('Enter your ' + pr + ' username:');
+        openid = openid.substr(0, u) + user;
+    }
+    form = document.forms['login'];
+    form.elements['openid'].value = openid;
+}
+</script>
+-->
+<head>
+    <meta charset="utf-8">
+    <title>Trust in Dragons</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Donate to your favorite non-profit project and keep track of their accountability in a gamification environment">
+    <meta name="author" content="Paige, Christine, Jess and Prashant">
+
+    <link type="text/css" href="static/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+    </style>
+    <link "text/css" href="static/css/bootstrap-responsive.css" rel="stylesheet">
+
+    </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">TrustInDragons</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="/about">About</a></li>
+              <li><a href="/admin">Start campaign</a></li>
+              <li><a href="/pyladies">Projects</a></li>
+              <li><a href="/contact">Contact</a></li>
+            </ul>
+            <form class="navbar-form pull-right">
+              <button href="/index" type="submit" class="btn">Sign in</button>
+            </form>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+
+        <div class="page-header">
+        <h1>Admin Interface for PyLadies Project<small> <br>Empowering Girls in STEM Project</small></h1>
+        </div>
+    
+        <form action="" method="post" name="login">
+  
+
+    <div class="container">
+      <div class="row">
+         <div class="span8">
+        <form class="form-signin">   
+        <input type="text" class="input-block-level" placeholder="Document">
+        <input type="text" class="input-block-level" placeholder="Description">
+        <input type="number" class="input-block-level" placeholder="Amount">
+        <button class="btn btn-large btn-primary" type="submit">"Tell The Dragonborns"</button>
+        </form>
+         </div>
+    </div>
+    </form>
+</div>
+
+
+
+	   <!-- Placed at the end of the document so the pages load faster -->
+    <script src="../static/js/jquery.js"></script>
+    <script src="../static/js/transition.js"></script>
+    <script src="../static/js/alert.js"></script>
+    <script src="../static/js/modal.js"></script>
+    <script src="../static/js/dropdown.js"></script>
+    <script src="../static/js/scrollspy.js"></script>
+    <script src="../static/js/tab.js"></script>
+    <script src="../static/js/tooltip.js"></script>
+    <script src="../static/js/popover.js"></script>
+    <script src="../static/js/button.js"></script>
+    <script src="../static/js/collapse.js"></script>
+    <script src="../static/js/carousel.js"></script>
+    <script src="../static/js/typeahead.js"></script>
+
+
+  </body>
+
+

@@ -1,0 +1,154 @@
+
+COMMENT examples for relational algebra
+
+COMMENT frequents
+frequents  = [dr ba pw] (
+  'adam'	'lolas'		1,
+  'woody'	'cheers'	5,
+  'sam'		'cheers'	5,
+  'norm'	'cheers'	3,
+  'wilt'	'joes'		2,
+  'norm'	'joes'		1,
+  'lola'	'lolas'		6,
+  'norm'	'lolas'		2,
+  'woody'	'lolas'		1,
+  'pierre'	'frankies'	0
+);
+
+COMMENT serves
+serves = [ba be qt] (
+  'cheers'	'bud'		500,
+  'cheers'	'samaddams'	255,
+  'joes'	'bud'		217,
+  'joes'	'samaddams'	13,
+  'joes'	'mickies'	2222,
+  'lolas'	'mickies'	1515,
+  'lolas'	'pabst'		333,
+  'winkos'	'rollingrock'	432,
+  'frankies'	'snafu'		5
+);
+
+COMMENT likes
+likes = [dr be pd] (
+  'adam'	'bud'			2,
+  'wilt'	'rollingrock'	1,
+  'sam'		'bud'			2,
+  'norm'	'rollingrock'		3,
+  'norm'	'bud'			2,
+  'nan'		'sierranevada'	1,	
+  'woody'	'pabst'			2,
+  'lola'	'mickies'		5
+);
+
+COMMENT simple projection examples
+
+projection[dr] likes;
+projection[dr pd] likes;
+
+COMMENT simple selection examples
+
+selection(dr='norm') likes;
+selection(~ dr = 'norm') likes;
+selection(dr='norm' | be='bud') likes;
+selection(dr='norm' & be='bud') likes;
+
+COMMENT simple rename examples
+
+rename[dr]to[person] likes;
+rename [dr pd] to [drinker perday] likes;
+
+COMMENT simple examples for -, intersect, U
+
+ld = projection[dr] likes;
+fd = projection[dr] frequents;
+ld;
+fd;
+nondrinkers = fd-ld;
+nondrinkers;
+bardrinkers = fd intersect ld;
+bardrinkers;
+alldrinkers = fd U ld;
+alldrinkers;
+
+COMMENT simple examples for join
+
+COMMENT intersection case
+fd join ld;
+
+COMMENT cross product case
+fd join projection[be] likes;
+
+COMMENT normal cases
+frequents join likes;
+frequents join likes join serves;
+
+COMMENT drinkers who like bud, frequent cheers 1
+selection(be='bud' & ba='cheers') (frequents join likes);
+projection[dr] selection(be='bud' & ba='cheers') (frequents join likes);
+
+COMMENT drinkers who like bud, frequent cheers 2
+like_bud = selection(be='bud') likes;
+like_bud;
+frequent_cheers = selection(ba='cheers') frequents;
+frequent_cheers;
+cheers_bud = frequent_cheers join like_bud;
+cheers_bud;
+projection[dr] cheers_bud;
+
+COMMENT drinkers who don't like bud, frequent cheers
+frequent_cheers_dont_like_bud = 
+   projection[dr] frequent_cheers - projection[dr] like_bud;
+frequent_cheers_dont_like_bud;
+
+COMMENT towards optimization of SQL, first get unique names
+f = rename[dr ba] to [fdr fba] frequents;
+s = rename[ba be] to [sba sbe] serves;
+l = rename[dr be] to [ldr lbe] likes;
+
+COMMENT bars norm frequents that serve bud
+
+COMMENT select f.ba
+COMMENT from frequents f, serves s
+COMMENT where f.dr='norm' and s.ba=f.ba and s.be='bud'
+
+projection[fba]
+  selection(fdr='norm' & sba=fba & sbe='bud')
+    (f join s);
+
+COMMENT examining sub-expression
+
+f join s;
+
+COMMENT more optimized
+
+projection[fba]
+  selection(sba=fba) (
+    (projection[sba] selection(sbe='bud') s)
+    join
+    (projection[fba] selection(fdr='norm') f)
+  );
+
+COMMENT subexpression:
+
+    (projection[sba] selection(sbe='bud') s)
+    join
+    (projection[fba] selection(fdr='norm') f);
+
+COMMENT even more optimized
+
+projection[fba]
+  (
+    (rename[sba] to [fba] 
+     projection[sba] selection(sbe='bud') s)
+    intersect
+    (projection[fba] selection(fdr='norm') f)
+  );
+
+COMMENT subexpression
+
+    (rename[sba] to [fba] 
+     projection[sba] selection(sbe='bud') s)
+    intersect
+    (projection[fba] selection(fdr='norm') f)
+
+

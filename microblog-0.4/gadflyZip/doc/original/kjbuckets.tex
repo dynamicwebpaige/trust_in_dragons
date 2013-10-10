@@ -1,0 +1,800 @@
+
+% This is a LaTex documentation file for the
+% kjbuckets C extension to Python by Aaron Watters.
+%
+% The kjbuckets package consists of the following files
+%   COPYRIGHT - a copyright notice.
+%   kjbuckets.README - a readme.
+%   kjbuckets.tex - documentation (this file).
+%   kjbucketsmodule.c - the C source for the module
+%   kjtest.py - some test results comparing access speeds
+%        for kjTables under various settings for GSIZE.
+%
+\documentstyle{article}
+\textwidth=6.5in
+\textheight=8.5in
+\topmargin=0.0in
+\oddsidemargin=0in
+\evensidemargin=0in
+\markright{Watters -- kjbuckets 2.2 -- draft}
+\pagestyle{myheadings}
+\title{Set and Graph Datatypes for Python\\
+       Release 2.2}
+\author{Aaron Watters\\
+	Computer and Information Sciences\\
+	New Jersey Institute of Technology\\
+	University Heights\\
+	Newark, NJ, 07102\\
+	(201)596-2666\\
+	watters@vienna.njit.edu
+	}
+\begin{document}           % End of preamble and beginning of text.
+\maketitle
+
+\begin{abstract}
+This is the documentation for the {\tt kjbuckets} C extension to
+Python (second release), 
+which defines graph and set datatypes as well as an
+alternative dictionary data type.  These types are tightly coupled
+at the level of C, allowing fast and powerful algebraic combinations
+of container objects.
+\end{abstract}
+
+\section{Introduction}
+
+The {\tt kjbuckets} module defines three data types for Python: {\tt
+kjSet}, {\tt kjGraph}, and {\tt kjDict}.  These types come with a
+number of associated methods, including common set theoretical
+operations such as union, intersection, difference, composition,
+transposition, reachability sets, and transitive closure.
+
+For suitably large compute intensive uses these types should provide
+up to an order of magnitude speedup versus an implementation that uses
+analogous operations implemented directly in Python.
+
+The following discussion assumes the {\tt kjbuckets} module has been
+compiled and installed in the Python executable.  For information on
+how to perform such an installation, see the Python extensions manual
+that comes with the Python distribution.
+
+Release 2.2 contains a number of goodies not documented here.
+If you want, you can try to figure them out from looking at the
+code!
+
+Release 2.1 had a problem linking under Python 1.2.
+This has been fixed in 2.2.
+
+\section{The Types}
+
+This module defines three types
+\begin{description}
+\item[kjSets]
+are initialized using the function {\tt kjbuckets.kjSet()}.  They are
+containers for Python hashable objects with no significance to
+redundancy and no order to members. EG:\footnote{Most of the
+examples given here use numeric elements for ease of presentation, 
+which is bad because it's
+boring.  It's also bad because it leaves the impression that only
+simple things can be archived -- which is wrong.  Remember that
+keys may be any hashable type (which even includes user defined
+classes which have a hash method defined), and for dictionaries
+and graphs the left members may be any Python object whatsoever.}
+\begin{verbatim}
+  >>> from kjbuckets import *
+  >>> X = kjSet([1,2,3,3,5,4]); print X
+  kjSet([1, 4, 3, 2, 5])
+  >>> Y = kjSet([5,5,3,3,2,1,4,4,4]); print Y
+  kjSet([1, 4, 3, 5, 2])
+  >>> X == Y
+  1
+\end{verbatim}
+\item[kjGraphs]
+are initialized using the function {\tt kjbuckets.kjGraph()}.  They
+relate Python hashable objects to other objects, with no
+significance to order or redundancies on the pairings.  
+Technically, kjGraph defines a directed graph abstract data type.
+EG:
+\begin{verbatim}
+  >>> G1 = kjGraph([(1,1),(1,2),(2,4),(9,6),(2,4)]); print G1
+  kjGraph([(1, 1), (1, 2), (9, 6), (2, 4)])
+  >>> G1.reachable(1)
+  kjSet([1, 4, 2])
+\end{verbatim}
+\item[kjDicts]
+are initialized using the function {\tt kjbuckets.kjDict()}.
+They map hashable objects to other objects, in a manner
+similar to the Python builtin Dictionary data type,
+except that the {\tt kjbucket} implementation is 
+slower.  That is, it is slower if you use it
+just like another Python dictionary.  It's a lot faster
+if you want to do compositions, intersections, and so forth
+using dictionaries.\footnote{And with the new release the speed
+difference is not so great anymore -- about 20\% slower on
+comparable operations -- and kjDict's tend to use
+less space than Python dictionaries for the same contents.}
+\begin{verbatim}
+  >>> D = kjDict([(1,1),(1,2),(2,4),(9,6),(2,4)]); print D
+  kjDict([(1, 2), (9, 6), (2, 4)])
+  >>> D * D
+  kjDict([(1, 4)])
+\end{verbatim}
+\end{description}
+
+\section{Initialization functions}
+
+Each of the initialization functions accept four possible argument
+sequences:
+\begin{description}
+\item[No argument:]
+Results in the creation of a smallest empty object of the requested
+type.
+For example {\tt kjSet()}, creates the smallest possible empty kjSet.
+\item[Contents list or tuple:]
+As illustrated above, the structures may be initialized with
+a list or tuple of contents, where the elements of the sequence are
+tuples of form
+(hashable object, object) pairs for kjDicts and kjGraphs and
+just hashable objects for kjSets.  The examples given here use lists
+as the top level structure for the sequence initialization form,
+but you can also use tuples.  For example as in
+\begin{verbatim}
+   >>> kjDict( ( (1,2), (2,3), (2,4), (3,4) ) )
+   kjDict([(1, 2), (2, 4), (3, 4)])
+   >>> kjSet( (9,2,1,9,8,7,6,4) )
+   kjSet([9, 6, 1, 7, 4, 2, 8])
+\end{verbatim}
+In the case of kjDicts if there are key collisions the
+resulting kjDict may be dirty.
+\item[Other kjTable:]
+If the initializer argument is another kjTable the result will be the input
+table ``coerced'' to the other type (or if the types match
+you will get ``first-level'' copy of the table.  
+The new object will be a distinct table which shares object
+references with the input table.
+\begin{verbatim}
+   >>> G
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1)])
+   >>> kjDict(G)
+   kjDict([(0, 5), (1, 0), (2, 1), (3, 3), (4, 4)])
+   >>> kjSet(G)
+   kjSet([0, 1, 2, 3, 4])
+   >>> G2=kjGraph(G)
+   >>> G2
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+           (1, 0), (2, 1)])
+   >>> G[12]=3
+   >>> G
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1), (12, 3)])
+   >>> G2
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1)])
+\end{verbatim}
+Coercing
+a graph to a dictionary where the graph maps the same object to several
+objects will produce
+a ``dirty'' dictionary with key collisions decided arbitrarily.
+Coercing a set to a graph or dictionary produces an ``identity''
+containing {\tt (x,x)} for each element {\tt x} of the Set.
+Coercing a graph or dictionary to a set produces the set of
+keys (left members) from the graph or dictionary.  To get the
+``set of arcs'' from a graph use {\tt kjSet(G.items())} instead
+of {\tt kjSet(G)}.
+\item[Number:]
+This option refers to the internal implementation of the types.
+Internally these types are implemented using arrays.  Sometimes
+these arrays need to be resized to a larger size before an
+insert can complete.
+By initializing using a single integer argument $n$, you request
+that the structure be large enough that no resize will be needed
+until after $n$ inserts (in the absense of deletions).  
+For example {\tt S = kjSet(1000)} initializes
+a set that will not need to be resized until after 1000 inserts
+have completed.\footnote{However, since deletes sometimes trigger
+the array to resize to a smaller size, deleting an element from
+{\tt S} before insert number 1000 may make resizing necessary anyway.
+Them's the breaks.}  Using this option may save some time and
+prevent some unnecessary memory fragmentation, when the programmer
+can determine (or guess) the expected number of insertions, a priori.
+\end{description}
+
+There is a peculiar way to initialize a {\tt kjDict}:
+\begin{verbatim}
+   >>> kjUndump(("name","age"), ("aaron",12))
+   kjDict([('name', 'aaron'), ('age', 12)])
+   >>> kjUndump(("ssnum",),"123456789")
+   kjDict([('ssnum', '123456789')])
+\end{verbatim}
+This is a parallel operation to {\tt kjDict.dump} which together
+are designed to make it easy to pack and unpack information from
+{\tt kjDict}s, in particular for constructing database-style
+indices.  There are two behaviors for this function.
+Called with arguments of form 
+\begin{verbatim}
+   kjUndump( (key,), map )
+\end{verbatim}
+(ie, the first argument is a tuple of length one and map is any object)
+the result is the same as
+\begin{verbatim}
+   kjDict( [ (key, map) ] )
+\end{verbatim}
+Alternatively, called with two tuples of the same length with
+lengths larger than 1 the invocation
+\begin{verbatim}
+   kjUndump( (k1, k2, ..., kn), (m1, m2, ..., mn) )
+\end{verbatim}
+produces the same result as
+\begin{verbatim}
+   kjDict( [ (k1,m1), (k2,m2), ..., (kn, mn) ] )
+\end{verbatim}
+If the same key is mentioned twice in the first argument
+and the corresponding values in the second argument are
+not equal the result will be a dirty dictionary.
+
+\section{Dirtiness}
+
+A table which has had a non-monotone update (ie, a deletion
+or a dictionary overwrite) is said to be ``dirty.''  In particular
+any deletion makes a table dirty; and coercing a graph to a dictionary,
+or transposing a dictionary, or unioning a set or dictionary with
+a dictionary will produce dirty dictionaries if the
+computation results in any key
+collisions.  To test whether a table is dirty use the {\tt X.Clean()}
+method which produces {\tt X} if {\tt X} is clean, otherwise None.
+For example:
+\begin{verbatim}
+   >>> G = kjGraph([(0, 0), (0, 1), (1, 4), (9, 9), (2, 5)])
+   >>> D = kjDict(G); print D; print D.Clean()
+   kjDict([(0, 1), (1, 4), (9, 9), (2, 5)])
+   None
+   >>> D2 = kjDict(D); print D2.Clean()
+   kjDict([(0, 1), (1, 4), (9, 9), (2, 5)])
+\end{verbatim}
+Here {\tt D} is dirty because the coercion from a graph resulted in
+key collisions on {\tt 0}, but the fresh copy {\tt D2} is not dirty.
+The result of an algebraic expression involving a dirty
+table will be dirty also, for example
+\begin{verbatim}
+  >>> D3 = D2 * D
+  >>> print D3, D3.Clean()
+  kjDict([(0, 4), (9, 9)]) None
+\end{verbatim}
+Note that, for example {\tt kjDict([(1,2),(1,3)])} will be dirty
+but {\tt kjDict([(1,2),(1,2)])} is not, i.e., inserting the
+same pair twice is not considered a collision.
+
+These types have a number of associated methods, operations, and accessors.
+For the purposes of discussion assume that {\tt S} is a kjSet,
+{\tt D} is a kjDict, and {\tt G} is a kjGraph in the remainder.  
+Furthermore assume {\tt X} is an object of
+any of these types.
+
+\section{Methods}
+
+There are a number of methods associated with each member of these
+types.
+\begin{description}
+%
+\item{\tt S.member(ob), D.member(arg,map), G.member(src,dst)}
+respectively are membership tests for the types.  Each returns 1 if the object
+or pair are members of the structure or 0 otherwise.
+%
+\item{\tt S.add(ob), D.add(arg,map), G.add(src,dst)}
+respectively add new members to the object. These are equivalent to
+{\tt G[src]=dst, D[arg]=map, S[ob]=1} but the former may be
+preferrable for graphs and sets since they are less misleading.
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+%
+\item{\tt D.delete\_arc(arg,map), G.delete\_arc(src,dst)}
+respectively delete a pair from the structure or raise an
+error if the pair is not found.
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+%
+\item{\tt X.has\_key(key)}
+determines whether a given key value occurs in the structure.
+In the case of sets this is identical to the membership test.
+In the case of dictionaries and graphs the function tests
+whether {\tt key} occurs as a left member of some pair in the
+structure and returns 1 if so, otherwise 0.
+%
+\item{\tt X.choose\_key()} selects an arbitrary key from the structure.
+In the case of sets it returns an arbitrary member of the set.
+In the case of graphs and dictionaries it picks an arbitrary left
+member of a pair in the structure.  This operation is useful for
+algorithms that begin ``pick an arbitrary node of the graph...''
+This method is ``nondeterministic'' in the sense that tables with
+the same members may choose different keys.
+%
+\item{\tt X.subset(Y)}
+determines whether {\tt X} is a subset of {\tt Y}.
+Returns 1 if so, else 0.  {\tt X} and {\tt Y} may be of different
+types but may be confusing if one argument is a set and the other
+is not.
+If {\tt X} is a set and {\tt Y} is a graph or dictionary
+then {\tt subset} will succeed if and only if {\tt Y} contains {\tt (e,e)}
+for each member {\tt e} of {\tt X}.
+If {\tt Y} is a set and {\tt X} is a graph or dictionary
+then {\tt subset} will succeed if and only if every key of
+{\tt X} is a member of {\tt Y}.
+%
+\item{\tt G.neighbors(key)}
+returns a list of the objects $y$ where {\tt (key, $y$)} is
+a member of {\tt G.}  For example
+\begin{verbatim}
+  >>> G = kjGraph([(0, 0), (1, 1), (0, 4), (1, 5), (2, 2), (2, 6)])
+  >>> G.neighbors(1)
+  [1, 5]
+\end{verbatim}
+If the key is absent from the table the result will be the empty
+list.
+This method is also defined for dictionaries, where the only possible
+results are a unary list if the key is present or an empty list if
+the key is absent.
+%
+\item{\tt G.reachable(key)}
+returns a kjSet of objects reachable on any path in the graph
+that begins at {\tt key.}  The {\tt key} itself will occur in the
+result only if it lies on a loop of the graph.  For example
+\begin{verbatim}
+>>> G = kjGraph([(1, 0), (4, 1), (0, 2), (3, 2), (6, 3), (2, 4), (5, 0)])
+>>> G.reachable(5)
+kjSet([0, 4, 1, 2])
+\end{verbatim}
+Again this method is also defined for dictionaries.  The method
+returns a kjSet rather than a list because this made sense to me at
+the time.
+%
+\item{\tt X.items()}
+returns a list of the members of the structure.  For example:
+\begin{verbatim}
+  >>> X = kjSet([0, 1, 2, 0, 1])
+  >>> X.items()
+  [1, 0, 2]
+  >>> X = kjGraph([(3, 0), (2, 2), (1, 2), (2, 0), (2, 0), (3, 0)])
+  >>> X.items()
+  [(1, 2), (3, 0), (2, 2), (2, 0)]
+\end{verbatim}
+\item{\tt G.keys(), G.values()}
+return the left members and right members of pairs in the graph 
+{\tt G} respectively.  For example:
+\begin{verbatim}
+   >>> G = kjGraph([(4, 8), (0, 9), (1, 10), (4, 9), (3, 7), (3, 8), (2, 7)])
+   >>> G.keys()
+   [4, 0, 1, 3, 2]
+   >>> G.values()
+   [8, 9, 10, 9, 7, 8, 7]
+\end{verbatim}
+Note that {\tt keys} eliminates redundancies, whereas {\tt values}
+does not.
+These functions are also defined for
+dictionaries but are not defined for sets.  
+%
+\item{\tt S.ident()}
+generates an ``identity dictionary'' from the set {\tt S}, the graph
+containing exactly those members {\tt ($x$,$x$)} where $x$ is 
+a member of {\tt S}.  For example, the following calculation
+determines the ``self-loop'' elements of G:
+\begin{verbatim}
+   >>> G
+   kjGraph([(0, 0), (0, 3), (0, 2), (1, 4), (9, 9), (2, 5)])
+   >>> I = kjSet(G).ident()
+   >>> I & G
+   kjGraph([(0, 0), (9, 9)])
+\end{verbatim}
+(In the previous release {\tt ident} produced a graph,
+but now that the algebraic operators have been generalized I
+opted to produce the more specific dictionary type.  This operation
+is now redundant since it is the same as {\tt kjDict(S)}.)
+%
+\item{\tt G.tclosure()}
+generates the transitive closure graph 
+derived from the graph {\tt G.}  
+For example:
+\begin{verbatim}
+  >>> G = kjGraph([(1, 3), (4, 1), (3, 0), (3, 1)])
+  >>> G.tclosure()
+  kjGraph([(1, 3), (4, 1), (1, 0), (1, 1), (4, 3), 
+           (3, 0), (3, 1), (3, 3), (4, 0)]
+\end{verbatim}
+%
+\item{\tt X.Clean()}
+produces None if table {\tt X} has experienced a non-monotone
+update (a deletion or a dictionary key collision) or was
+algebraically derived from a table that had experienced a
+non-monotone update, in all other cases it returns the table
+{\tt X} itself.  This is particularly useful for testing whether
+the unions of dictionaries or the transpose of a dictionary
+was unambiguous.
+\begin{verbatim}
+   >>> D = kjDict([('name', 'A. Watters'), ('ssn', 123)])
+   >>> D2 = kjDict([('ssn', 999), ('salary', 9000000)])
+   >>> D3 = D + D2; print D3
+   kjDict([('name', 'A. Watters'), ('ssn', 999), ('salary', 9000000)])
+   if D3.Clean() != None:
+   ...    print D3["name"], " makes ", D3["salary"]
+   ... else:
+   ...    print "ambiguous dictionary union"
+   ...
+   ambiguous dictionary union
+\end{verbatim}
+Relational natural join anyone?
+%
+\item{\tt X.Wash(), X.Soil()}
+force a table to appear to be clean or dirty respectively, both
+returning {\tt None}.  Included for completeness.
+%
+\item{\tt D.remap(X)}
+produces a dictionary that is the result of remapping
+D by X, but it produces None if the remapping causes
+a key collision.  For example to rename keys {\tt l} and
+{\tt f} to {\tt lname} and {\tt fname} respectively, preserving
+{\tt ssn}, equating {\tt ssn} with {\tt enum}, and disregarding
+all other keys for D we could write.
+\begin{verbatim}
+   >>> D = kjDict( [("f","aaron"), ("l","watters"), ("m","robert"), 
+                    ("ssn",123)] )
+   >>> G = kjGraph()
+   >>> G["ssn"]="enum"
+   >>> G = (G + ~G).tclosure() # symmetric and transitive closure
+   >>> G["lname"] = "l"; G["fname"] = "f"
+   >>> D.remap(G)
+   kjDict([('enum', 123), ('ssn', 123), ('lname', 'watters'), 
+           ('fname', 'aaron')])
+\end{verbatim}
+This may seem strange, but it can be a very useful way
+of transforming collections of dictionaries.
+This operation is exactly the same as
+{\tt kjDict(X*D).Clean()} but faster.  (I use
+it a lot, so I optimized it -- it can correspond
+to projection, equality selection, and renaming in
+the relational algebra).  
+%
+\item{\tt D.dump(X)} 
+packs right members of a dictionary into a compact form.
+This function has two behaviors:
+\begin{verbatim}
+   >>> D = kjUndump(("name","age","ssn"), ("aaron",12,12345))
+   >>> D
+   kjDict([('name', 'aaron'), ('age', 12), ('ssn', 12345)])
+   >>> D.dump(("ssn",))
+   12345
+   >>> D.dump(("name","ssn"))
+   ('aaron', 12345)
+\end{verbatim}
+Called with an argument of form
+\begin{verbatim}
+    D.dump( (key,) )
+\end{verbatim}
+(ie, a tuple of length one) it produces the same result as
+\begin{verbatim}
+    D[key]
+\end{verbatim}
+Alternatively, called with an argument of form
+\begin{verbatim}
+    D.undump( (k1, k2, ..., kn) )
+\end{verbatim}
+(ie, a tuple of length greater than one) it produces that same
+result as
+\begin{verbatim}
+    ( D[k1], D[k2], ..., D[kn] )
+\end{verbatim}
+This function is the parallel operation to
+the dictionary initializer {\tt kjUndump}, which together
+are designed to make it easy to pack and unpack information
+from {\tt kjDict}s.  It is also defined on graphs, in which
+case the choice of for the resulting mapped items may be
+arbitrary.
+%
+\item{\tt len(X)}
+return the number of entries in X (which is the
+number of pairs in the case of
+graphs or dictionaries).
+%
+\item{\tt del X[key]}
+deletes the key from the structure.  In the case of sets, this
+simply removes an element.  In the case of dictionaries and graphs
+this method removes {\em all} entries with left member {\tt key.}
+For example:
+\begin{verbatim}
+  >>> G = kjGraph([(1, 3), (4, 1), (3, 0), (3, 1)])
+  >>> del G[3]
+  >>> G
+  kjGraph([(1, 3), (4, 1)])
+\end{verbatim}
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+\end{description}
+
+\section{Hashing}
+
+These types are hashable, that is, they may
+be used as keys in hash structures and you may apply the
+function {\tt hash(X)} to them.  The {\tt kjGraph}
+and {\tt kjDict} structures also allow
+hashing even if some of their right members are unhashable.
+The ``down side'' of this ``hashing unhashables'' feature is
+that if two structures of the same type only differ on their
+unhashable right members they will hash to the same value --
+which can make hash table look-ups slow.  A ``rule of thumb''
+is to only use {\tt kjDict}s and {\tt kjGraph}s as keys of
+a hash table structure if the set of keys is expected to 
+nearly always differ
+on hashable components.
+
+{\bf However, once a table's
+hash value has been computed for any reason, that table becomes
+immutable -- any attempts to mutate the structure in place
+(using index assignment, {\tt del}, 
+{\tt X.delete\_arc}, or {\tt X.add})
+will raise a {\tt TypeError}.}
+
+\section{Other Properties}
+
+Objects of these types may be compared
+for equality where {\tt X==Y} succeeds if and only if X and Y
+contain the same members.  Mixed type equality comparisons 
+between kj-tables are
+allowed, where if {\tt S==D} succeeds if and only if {\tt D}
+consists of the pairs {\tt (e,e)} for each element {\tt e}
+of {\tt S}, and similarly for {\tt S==G}.
+
+Objects of these types may also be
+used as booleans where only an empty structure is equivalent to
+false.
+
+One questionable aspect of the implementation is the use of 
+the indexing notation.  Although it may be completely avoided,
+both kjSets and kjGraphs allow indexing.  In the case of sets
+{\tt S[object]=anything} inserts the {\tt object} as a member of the
+set and disregards {\tt anything}, and a retrieval {\tt S[object]}
+returns 1 if {\tt object} is a member of the set or raises an
+key error otherwise.  For example,
+\begin{verbatim}
+  >>> S
+  kjSet([1, 3, 2])
+  >>> S["this"] = "that"
+  >>> S
+  kjSet([1, 3, 2, 'this'])
+  >>> S["this"]
+  1
+  >>> S["that"]
+  KeyError: that
+\end{verbatim}
+In the case of graphs {\tt G[object]=map} adds {\tt (object, map)}
+as a new arc of the graph, and {\tt G[object]} retrieves an
+arbitrary neighbor associated with  {\tt object}, or raises
+a KeyError if there is none.  For example:
+\begin{verbatim}
+  >>> G
+  kjGraph([(1, 3), (4, 1)])
+  >>> G[1] = 9
+  >>> G
+  kjGraph([(1, 3), (4, 1), (1, 9)])
+  >>> G[1]
+  3
+  >>> G[6]
+  KeyError: 6
+\end{verbatim}
+Some may find this use of indexing notation non-intuitive, but
+others may find it appealing, as far as I know.
+
+Index assignment is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+
+\section{Algebraic Operations}
+
+The implementation provides a number of common set theoretical
+operations over these structures.  All the set algebraic operations
+are side effect free (and they may be applied to tables which have
+been hashed).  These operations may be applied to tables with
+differing types, except where noted.  
+Except for
+intersection and difference, a binary operation applied to objects
+of different types produces an object of the ``more general'' type,
+i.e, 
+{\tt S+D} produces a (possibly dirty) dictionary,
+{\tt S+G} produces a graph,
+{\tt D+G} produces a graph.
+Binary operations applied to objects of the same type produces
+an object of that type.
+
+Generally, when a set {\tt S}
+is used in permitted mixed-mode algebra with a graph or a dictionary it
+``acts like'' the identity dictionary {\tt S.ident()}.  
+
+The built in algebraic operations are as follows.
+\begin{description}
+\item{Union}
+produces the union of two structures of the same type, invoked
+using either the notation {\tt X+Y} or {\tt X|Y}.  For example:
+\begin{verbatim}
+   >>> kjGraph([(1,3), (4,1), (1,9)]) + kjSet([6,7,2])
+   kjGraph([(1, 3), (4, 1), (1, 9), (6, 6), (7, 7), (2, 2)])
+\end{verbatim}
+If dictionary {\tt D1} contains {\tt (key, map1)} and
+dictionary (or set) {\tt D2} contains {\tt (key, map2)} then
+{\tt D1+D2} will be a dirty dictionary containing
+one of the pairs, but not the
+other.
+\item{Difference}
+produces the set difference of two structures of the same type,
+invoked using the notation {\tt X-Y}.  For example:
+\begin{verbatim}
+  >>> kjSet([1,2,5,7]) - kjSet([1,2,4,8])
+  kjSet([7, 5])
+\end{verbatim}
+Differences of graphs and dictionaries are allowed, where
+{\tt X-Y} produces an object of the same type as {\tt X},
+but mixed differences are not allowed when one of the arguments
+is a set (yet).
+\item{Composition}
+with notation {\tt G1*G2} produces the graph containing
+{\tt ($s1$,$d2$)} whenever there is an arc
+{\tt ($s1$,$d1$)} in {\tt G1} and an arc
+{\tt ($d1$,$d2$)} in {\tt G2}.  For example:
+\begin{verbatim}
+  >>> G1 = kjGraph([(0, 1), (1, 2), (3, 0), (3, 4), (2, 3)])
+  >>> G2 = kjGraph([(4, 0), (0, 1), (1, 2), (3, 1), (2, 0)])
+  >>> G1*G2
+  kjGraph([(0, 2), (1, 0), (3, 1), (3, 0), (2, 1)])
+\end{verbatim}
+Any two tables can be composed, producing an object of the
+more general type.  Composing two sets is a slower way to
+compute their intersection.
+\item{Transposition}
+with notation \verb+~G+ produces the graph containing
+{\tt ($d$, $s$)} if and only if G contains {\tt ($s$, $d$)}.
+for example
+\begin{verbatim}
+  >>> G = kjGraph([(0, 0), (3, 2), (6, 4), (20, 1), (23, 3), (26, 5)])
+  >>> ~G
+  kjGraph([(0, 0), (4, 6), (1, 20), (3, 23), (2, 3), (5, 26)])
+\end{verbatim}
+Transposition is defined for dictionaries, but 
+if there are key collisions the winning pair will be decided
+arbitrarily and the resulting table will be dirty.
+For example,
+\begin{verbatim}
+  >>> ~kjDict([("hello","hi"), ("hola","hi"), ("beat it","bye")])
+  kjDict([('bye', 'beat it'), ('hi', 'hola')])
+\end{verbatim}
+This operation is not defined for sets.
+\item{Intersection}
+produces the set intersection of two structures 
+invoked using the notation {\tt X\&Y}.  For example:
+\begin{verbatim}
+  >>> G = kjGraph([(0,0), (3,2), (6,4), (20,1), (23,3), (26,5), (2,23)])
+  >>> G & ~G.tclosure()
+  kjGraph([(0, 0), (3, 2), (23, 3), (2, 23)])
+\end{verbatim}
+Mixed mode intersections between graphs and dictionaries are allowed
+{\em producing the less general dictionary type}.  Mixed mode
+intersections where one of the arguments is a set is not permitted.
+\end{description}
+
+{\bf Note:}
+The graph and dictionary operations of composition, reachability,
+transitive closure,
+and transposition assume that ``right members'' (values) are
+hashable.  If any right member is not hashable these functions may
+raise a {\tt TypeError}, for example
+\begin{verbatim}
+  >>> X = kjGraph([ (1,{}) ])
+  >>> ~X
+  TypeError: unhashable type
+\end{verbatim}
+Here the empty Python dictionary is not a hashable type, so it could
+not be used in the transposed graph as a left member.
+
+\section{On performance}
+
+These structures use a hash table based representation which should
+deliver expected good performance for many applications.
+Nevertheless, as with all hash implementations there is a
+theoretical possibility of very bad worst case performance.
+Furthermore, inserts and deletes occasionally cause the
+internal structure to resize, so although the average speed for
+inserts and deletes is expected to be ``near constant'', once
+in a while an insert or delete may be slow.
+
+In addition, since the kjGraph implementation hashes using the
+left member only from each graph arc, graphs where many nodes have
+a very large number of neighbors may have poor access times.  In this
+case it may appropriate to use a ``set of pairs'' 
+or a ``dict of sets'' representation
+in place of a kjGraph, if this is possible, or some alternative
+implementation.
+
+The implementation of {\tt G.tclosure} is 
+``quick and dirty (keep it simple, stupid)''
+and leaves much room for speed improvements.  It may be
+slow for large and complex graphs.  If this is a problem
+I might be enticed to improve it, let me know.
+
+Someday I'd like to make the deletion operations faster
+(by a constant factor),
+but I'm not highly motivated here since I personally tend
+to build up tables without ever deleting anything.
+
+\section{Miscellaneous comments}
+
+Once again I'd like to commend Guido and the other Python
+contributors on their work.  It's a delight to know that
+Python is nice both at the front end and at the back end.
+
+The package is written in C but
+descends from an ancestor (not suitable for public
+viewing) which was written exclusively in Python.  I wrote
+this module (1) as an experimented in extending Python using
+C and (2) as an experiment in migrating a Python implementation
+to a C implementation.  The result is a package which
+I hope may be useful to someone.  
+
+This release is about twice as fast as previous releases thanks to
+permiscuous use of C macros in the implementation.  Additionally,
+mixed-type operations, coercions, and a few additional methods have
+been added in this release.
+
+There is one defined constant in the C code you might
+want to play with: {\tt GSIZE} -- the number of
+elements of the table heaped together in one ``lump''
+(i.e, the size of an unordered subarray of the table).
+Roughly speaking if
+{\tt GSIZE} is large the table will resize less often, and usually
+use space more efficiently.  Generally speaking
+larger values will also make the accesses slower, but with
+a value less than around 64 this may not always be true on some
+machines with fancy memory caching (just guessing here, really).
+The default value is 6, which works pretty well on my machines.
+{\tt GSIZE} also represents the basic size allocated for the
+smallest possible table, so if you expect to use lots of small
+sets a large GSIZE may not be advisable.
+Don't fiddle with the other constants unless you are willing
+to debug possible problems that may result.
+
+\section{Bugs}
+
+Release 2 had a hole in the initializers that caused undefined
+behavior.  It has been fixed in 2.1.
+
+Release 2.1 wouldn't link under Python 1.2.  This has been
+fixed in 2.2.
+
+The first release would crash on certain graph operations
+(transpose, reachability, composition, transitive closure)
+applied to graphs that contained unhashable nodes.  Now they raise
+an error instead.  Previous releases also had a serious bug
+that sometimes corrupted the internal structure of kjSets.
+I don't know of any remaining ``real'' bugs
+-- the rest of this section discusses possibly confusing
+``features.''
+
+As mentioned above in several places, structures that have
+been hashed may not be subsequently modified -- attempts to modify
+hashed structures will raise {\tt TypeError}.
+
+Mixed mode differences and intersections are not allowed when
+one of the arguments is a set (as mentioned).
+
+Some unions and transposes on dictionaries will produce a
+dirty dictionary if there are key collisions, and the key
+collisions will be decided arbitrarily.  Similarly,
+coercing a graph to a dictionary will produce a dirty dictionary
+if there are key collisions.  See the section on Dirtiness
+above.
+
+The {\tt kjGraph} implementation does not represent nodes
+with no edges.  Programmers may work around this either by
+wrapping the graph in a class with a node set, or by 
+adopting some appropriate
+convention that I leave to their infinitely creative imaginations.
+
+Please let me know if you find some other bug or confusing
+feature.  At this point
+I consider the package to be reasonably well tested, but I
+offer {\sc no warrantees}.
+
+\end{document}

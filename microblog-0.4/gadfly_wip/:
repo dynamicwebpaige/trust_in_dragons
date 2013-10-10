@@ -1,0 +1,47 @@
+import os
+import gadfly
+
+#user input variables passed over by Prashant's web stuff
+#n_var = form.name
+#e_var = form.email
+#p_var = form.phone_number 
+
+#Create the dir and the db
+#os.mkdir("data_dir")
+#cxn = gadfly.gadfly()
+#cxn.startup("project_db", "data_dir")
+
+#Reconnect to db
+cxn = gadfly.gadfly("project_db","data_dir")
+
+#Create initial set of tables
+cur = cxn.cursor()
+#cur.execute("drop table t_users")
+#cur.execute("create table t_users (user_name varchar, user_email varchar, phone_num varchar)") 
+
+def add_new_user(name_var, email_var, phone_var):
+   """Add new user based on web form inputs"""
+   insertstat = "insert into t_users (user_name, user_email, phone_num) values (?,?,?)"
+   cur.execute(insertstat, (name_var, email_var, phone_var))     #variables is a list create from values user entered into the form
+   cur.execute("select * from t_users")
+   for x in cur.fetchall():
+       print x
+
+def find_proj_users():
+    """Find group of users that donated to a particular project"""
+    findstat = "select * from t_users"
+    cur.execute(findstat)
+    for x in cur.fetchall():
+	return x
+
+#add_new_user("whatever", "dontcare@anymore.com", "123456788")
+#add_new_user("whatever2", "dontcare2@anymore.com", "223456788")
+#add_new_user("whatever3", "dontcare3@anymore.com", "323456788")
+
+c = find_proj_users()
+print c
+
+cxn.commit()
+
+
+        

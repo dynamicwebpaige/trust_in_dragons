@@ -1,0 +1,801 @@
+<html>
+<head>
+<title>
+Set and Graph Datatypes for Python: kjbuckets
+       Release 2.2
+</title>
+<body bgcolor="#55bbcc">
+<center>
+<h1>Set and Graph Datatypes for Python: kjbuckets
+       Release 2.2
+</h1>
+<blockquote>
+<a href="mailto:aaron_watters@msn.com">
+Aaron Watters</a><br>
+	Computer and Information Sciences<br>
+	New Jersey Institute of Technology<br>
+	University Heights<br>
+	Newark, NJ, 07102<br>
+(address obsolescent).
+</blockquote>
+<blockquote>
+<strong>Abstract:</strong>
+This is the documentation for the <strong>kjbuckets</strong> C extension to
+Python (second release), 
+which defines graph and set datatypes as well as an
+alternative dictionary data type.  These types are tightly coupled
+at the level of C, allowing fast and powerful algebraic combinations
+of container objects.
+</blockquote>
+</center>
+<h2>Introduction</h2>
+<p>
+The <code>kjbuckets</code> module defines three data types for Python: 
+<code>kjSet</code>, <code>kjGraph</code>, and <code>kjDict</code>.  These types come with a
+number of associated methods, including common set theoretical
+operations such as union, intersection, difference, composition,
+transposition, reachability sets, and transitive closure.
+<p>
+For suitably large compute intensive uses these types should provide
+up to an order of magnitude speedup versus an implementation that uses
+analogous operations implemented directly in Python.
+<p>
+The following discussion assumes the <code>kjbuckets</code> module has been
+compiled and installed in the Python executable.  For information on
+how to perform such an installation, see the Python extensions manual
+that comes with the Python distribution.
+<p>
+Release 2.2 contains a number of goodies not documented here.
+If you want, you can try to figure them out from looking at the
+code!
+<p>
+Release 2.1 had a problem linking under Python 1.2.
+This has been fixed in 2.2.
+
+<h2>The Types</h2>
+<p>
+This module defines three types
+<table border cellspacing=5 bgcolor="#aa9944">
+<tr><th valign="top" bgcolor="#ddff11">kjSets</th></tr><tr><td bgcolor="#ffffff">>
+are initialized using the function <code>kjbuckets.kjSet()</code>.  They are
+containers for Python hashable objects with no significance to
+redundancy and no order to members. EG: <p><center><em>Most of the
+examples given here use numeric elements for ease of presentation, 
+which is bad because it's
+boring.  It's also bad because it leaves the impression that only
+simple things can be archived -- which is wrong.  Remember that
+keys may be any hashable type (which even includes user defined
+classes which have a hash method defined), and for dictionaries
+and graphs the left members may be any Python object whatsoever.</em></center>
+<pre>
+  >>> from kjbuckets import *
+  >>> X = kjSet([1,2,3,3,5,4]); print X
+  kjSet([1, 4, 3, 2, 5])
+  >>> Y = kjSet([5,5,3,3,2,1,4,4,4]); print Y
+  kjSet([1, 4, 3, 5, 2])
+  >>> X == Y
+  1
+</pre>
+</td></tr><tr><th valign="top" bgcolor="#ddff11">kjGraphs</th></tr><tr><td bgcolor="#ffffff">
+are initialized using the function <code>kjbuckets.kjGraph()</code>.  They
+relate Python hashable objects to other objects, with no
+significance to order or redundancies on the pairings.  
+Technically, kjGraph defines a directed graph abstract data type.
+EG:
+<pre>
+  >>> G1 = kjGraph([(1,1),(1,2),(2,4),(9,6),(2,4)]); print G1
+  kjGraph([(1, 1), (1, 2), (9, 6), (2, 4)])
+  >>> G1.reachable(1)
+  kjSet([1, 4, 2])
+</pre>
+</td></tr><tr><th valign="top" bgcolor="#ddff11">kjDicts</th></tr><tr><td bgcolor="#ffffff">
+are initialized using the function <code>kjbuckets.kjDict()</code>.
+They map hashable objects to other objects, in a manner
+similar to the Python builtin Dictionary data type,
+except that the <code>kjbucket</code> implementation is 
+slower.  That is, it is slower if you use it
+just like another Python dictionary.  It's a lot faster
+if you want to do compositions, intersections, and so forth
+using dictionaries.<p><center><em>And with the new release the speed
+difference is not so great anymore -- about 20% slower on
+comparable operations -- and kjDict's tend to use
+less space than Python dictionaries for the same contents.</em></center>
+<pre>
+  >>> D = kjDict([(1,1),(1,2),(2,4),(9,6),(2,4)]); print D
+  kjDict([(1, 2), (9, 6), (2, 4)])
+  >>> D * D
+  kjDict([(1, 4)])
+</pre>
+</table>
+
+<h2>Initialization functions</h2>
+<p>
+Each of the initialization functions accept four possible argument
+sequences:
+<table border cellspacing=5 bgcolor="#aa9944">
+<tr><th valign="top" bgcolor="#ddff11">No argument:</th></tr><tr><td bgcolor="#ffffff">
+Results in the creation of a smallest empty object of the requested
+type.
+For example <code>kjSet()</code>, creates the smallest possible empty kjSet.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Contents list or tuple:</th></tr><tr><td bgcolor="#ffffff">
+As illustrated above, the structures may be initialized with
+a list or tuple of contents, where the elements of the sequence are
+tuples of form
+(hashable object, object) pairs for kjDicts and kjGraphs and
+just hashable objects for kjSets.  The examples given here use lists
+as the top level structure for the sequence initialization form,
+but you can also use tuples.  For example as in
+<pre>
+   >>> kjDict( ( (1,2), (2,3), (2,4), (3,4) ) )
+   kjDict([(1, 2), (2, 4), (3, 4)])
+   >>> kjSet( (9,2,1,9,8,7,6,4) )
+   kjSet([9, 6, 1, 7, 4, 2, 8])
+</pre>
+In the case of kjDicts if there are key collisions the
+resulting kjDict may be dirty.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Other kjTable:</th></tr><tr><td bgcolor="#ffffff">
+If the initializer argument is another kjTable the result will be the input
+table ``coerced'' to the other type (or if the types match
+you will get ``first-level'' copy of the table.  
+The new object will be a distinct table which shares object
+references with the input table.
+<pre>
+   >>> G
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1)])
+   >>> kjDict(G)
+   kjDict([(0, 5), (1, 0), (2, 1), (3, 3), (4, 4)])
+   >>> kjSet(G)
+   kjSet([0, 1, 2, 3, 4])
+   >>> G2=kjGraph(G)
+   >>> G2
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+           (1, 0), (2, 1)])
+   >>> G[12]=3
+   >>> G
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1), (12, 3)])
+   >>> G2
+   kjGraph([(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (0, 5), 
+            (1, 0), (2, 1)])
+</pre>
+Coercing
+a graph to a dictionary where the graph maps the same object to several
+objects will produce
+a ``dirty'' dictionary with key collisions decided arbitrarily.
+Coercing a set to a graph or dictionary produces an ``identity''
+containing <code>(x,x)</code> for each element <code>x</code> of the Set.
+Coercing a graph or dictionary to a set produces the set of
+keys (left members) from the graph or dictionary.  To get the
+``set of arcs'' from a graph use <code>kjSet(G.items())</code> instead
+of <code>kjSet(G)</code>.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Number:</th></tr><tr><td bgcolor="#ffffff">
+This option refers to the internal implementation of the types.
+Internally these types are implemented using arrays.  Sometimes
+these arrays need to be resized to a larger size before an
+insert can complete.
+By initializing using a single integer argument n, you request
+that the structure be large enough that no resize will be needed
+until after n inserts (in the absense of deletions).  
+For example <code>S = kjSet(1000)</code> initializes
+a set that will not need to be resized until after 1000 inserts
+have completed.
+<p><center><em>However, since deletes sometimes trigger
+the array to resize to a smaller size, deleting an element from
+<code>S</code> before insert number 1000 may make resizing necessary anyway.
+Them's the breaks.</em></center><p>
+
+Using this option may save some time and
+prevent some unnecessary memory fragmentation, when the programmer
+can determine (or guess) the expected number of insertions, a priori.
+</table>
+<p>
+There is a peculiar way to initialize a <code>kjDict</code>:
+<pre>
+   >>> kjUndump(("name","age"), ("aaron",12))
+   kjDict([('name', 'aaron'), ('age', 12)])
+   >>> kjUndump(("ssnum",),"123456789")
+   kjDict([('ssnum', '123456789')])
+</pre>
+This is a parallel operation to <code>kjDict.dump</code> which together
+are designed to make it easy to pack and unpack information from
+<code>kjDict</code>s, in particular for constructing database-style
+indices.  There are two behaviors for this function.
+Called with arguments of form 
+<pre>
+   kjUndump( (key,), map )
+</pre>
+(ie, the first argument is a tuple of length one and map is any object)
+the result is the same as
+<pre>
+   kjDict( [ (key, map) ] )
+</pre>
+Alternatively, called with two tuples of the same length with
+lengths larger than 1 the invocation
+<pre>
+   kjUndump( (k1, k2, ..., kn), (m1, m2, ..., mn) )
+</pre>
+produces the same result as
+<pre>
+   kjDict( [ (k1,m1), (k2,m2), ..., (kn, mn) ] )
+</pre>
+If the same key is mentioned twice in the first argument
+and the corresponding values in the second argument are
+not equal the result will be a dirty dictionary.
+
+<h2>Dirtiness</h2>
+<p>
+A table which has had a non-monotone update (ie, a deletion
+or a dictionary overwrite) is said to be ``dirty.''  In particular
+any deletion makes a table dirty; and coercing a graph to a dictionary,
+or transposing a dictionary, or unioning a set or dictionary with
+a dictionary will produce dirty dictionaries if the
+computation results in any key
+collisions.  To test whether a table is dirty use the <code>X.Clean()</code>
+method which produces <code>X</code> if <code>X</code> is clean, otherwise None.
+For example:
+<pre>
+   >>> G = kjGraph([(0, 0), (0, 1), (1, 4), (9, 9), (2, 5)])
+   >>> D = kjDict(G); print D; print D.Clean()
+   kjDict([(0, 1), (1, 4), (9, 9), (2, 5)])
+   None
+   >>> D2 = kjDict(D); print D2.Clean()
+   kjDict([(0, 1), (1, 4), (9, 9), (2, 5)])
+</pre>
+Here <code>D</code> is dirty because the coercion from a graph resulted in
+key collisions on <code>0</code>, but the fresh copy <code>D2</code> is not dirty.
+The result of an algebraic expression involving a dirty
+table will be dirty also, for example
+<pre>
+  >>> D3 = D2 * D
+  >>> print D3, D3.Clean()
+  kjDict([(0, 4), (9, 9)]) None
+</pre>
+Note that, for example <code>kjDict([(1,2),(1,3)])</code> will be dirty
+but <code>kjDict([(1,2),(1,2)])</code> is not, i.e., inserting the
+same pair twice is not considered a collision.
+<p>
+These types have a number of associated methods, operations, and accessors.
+For the purposes of discussion assume that <code>S</code> is a kjSet,
+<code>D</code> is a kjDict, and <code>G</code> is a kjGraph in the remainder.  
+Furthermore assume <code>X</code> is an object of
+any of these types.
+
+<h2>Methods</h2>
+<p>
+There are a number of methods associated with each member of these
+types.
+<table border cellspacing=5 bgcolor="#aa9944">
+
+<tr><th valign="top" bgcolor="#ddff11"><code>S.member(ob), D.member(arg,map), G.member(src,dst)</code></th></tr><tr><td bgcolor="#ffffff">
+respectively are membership tests for the types.  Each returns 1 if the object
+or pair are members of the structure or 0 otherwise.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>S.add(ob), D.add(arg,map), G.add(src,dst)</th></tr><tr><td bgcolor="#ffffff">
+respectively add new members to the object. These are equivalent to
+<code>G[src]=dst, D[arg]=map, S[ob]=1</code> but the former may be
+preferrable for graphs and sets since they are less misleading.
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>D.delete_arc(arg,map), G.delete_arc(src,dst)</code></th></tr><tr><td bgcolor="#ffffff">
+respectively delete a pair from the structure or raise an
+error if the pair is not found.
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.has_key(key)</code></th></tr><tr><td bgcolor="#ffffff">
+determines whether a given key value occurs in the structure.
+In the case of sets this is identical to the membership test.
+In the case of dictionaries and graphs the function tests
+whether <code>key</code> occurs as a left member of some pair in the
+structure and returns 1 if so, otherwise 0.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.choose_key()</code></th></tr><tr><td bgcolor="#ffffff">
+ selects an arbitrary key from the structure.
+In the case of sets it returns an arbitrary member of the set.
+In the case of graphs and dictionaries it picks an arbitrary left
+member of a pair in the structure.  This operation is useful for
+algorithms that begin ``pick an arbitrary node of the graph...''
+This method is ``nondeterministic'' in the sense that tables with
+the same members may choose different keys.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.subset(Y)</code></th></tr><tr><td bgcolor="#ffffff">
+determines whether <code>X</code> is a subset of <code>Y</code>.
+Returns 1 if so, else 0.  <code>X</code> and <code>Y</code> may be of different
+types but may be confusing if one argument is a set and the other
+is not.
+If <code>X</code> is a set and <code>Y</code> is a graph or dictionary
+then <code>subset</code> will succeed if and only if <code>Y</code> contains <code>(e,e)</code>
+for each member <code>e</code> of <code>X</code>.
+If <code>Y</code> is a set and <code>X</code> is a graph or dictionary
+then <code>subset</code> will succeed if and only if every key of
+<code>X</code> is a member of <code>Y</code>.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>G.neighbors(key)</code></th></tr><tr><td bgcolor="#ffffff">
+returns a list of the objects y where <code>(key, y)</code> is
+a member of <code>G.</code>  For example
+<pre>
+  >>> G = kjGraph([(0, 0), (1, 1), (0, 4), (1, 5), (2, 2), (2, 6)])
+  >>> G.neighbors(1)
+  [1, 5]
+</pre>
+If the key is absent from the table the result will be the empty
+list.
+This method is also defined for dictionaries, where the only possible
+results are a unary list if the key is present or an empty list if
+the key is absent.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>G.reachable(key)</code></th></tr><tr><td bgcolor="#ffffff">
+returns a kjSet of objects reachable on any path in the graph
+that begins at <code>key.</code>  The <code>key</code> itself will occur in the
+result only if it lies on a loop of the graph.  For example
+<pre>
+>>> G = kjGraph([(1, 0), (4, 1), (0, 2), (3, 2), (6, 3), (2, 4), (5, 0)])
+>>> G.reachable(5)
+kjSet([0, 4, 1, 2])
+</pre>
+Again this method is also defined for dictionaries.  The method
+returns a kjSet rather than a list because this made sense to me at
+the time.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.items()</code></th></tr><tr><td bgcolor="#ffffff">
+returns a list of the members of the structure.  For example:
+<pre>
+  >>> X = kjSet([0, 1, 2, 0, 1])
+  >>> X.items()
+  [1, 0, 2]
+  >>> X = kjGraph([(3, 0), (2, 2), (1, 2), (2, 0), (2, 0), (3, 0)])
+  >>> X.items()
+  [(1, 2), (3, 0), (2, 2), (2, 0)]
+</pre>
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>G.keys(), G.values()</code></th></tr><tr><td bgcolor="#ffffff">
+return the left members and right members of pairs in the graph 
+<code>G</code> respectively.  For example:
+<pre>
+   >>> G = kjGraph([(4, 8), (0, 9), (1, 10), (4, 9), (3, 7), (3, 8), (2, 7)])
+   >>> G.keys()
+   [4, 0, 1, 3, 2]
+   >>> G.values()
+   [8, 9, 10, 9, 7, 8, 7]
+</pre>
+Note that <code>keys</code> eliminates redundancies, whereas <code>values</code>
+does not.
+These functions are also defined for
+dictionaries but are not defined for sets.  
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>S.ident()</code></th></tr><tr><td bgcolor="#ffffff">
+generates an ``identity dictionary'' from the set <code>S</code>, the graph
+containing exactly those members <code>(x,x)</code> where x is 
+a member of <code>S</code>.  For example, the following calculation
+determines the ``self-loop'' elements of G:
+<pre>
+   >>> G
+   kjGraph([(0, 0), (0, 3), (0, 2), (1, 4), (9, 9), (2, 5)])
+   >>> I = kjSet(G).ident()
+   >>> I & G
+   kjGraph([(0, 0), (9, 9)])
+</pre>
+(In the previous release <code>ident</code> produced a graph,
+but now that the algebraic operators have been generalized I
+opted to produce the more specific dictionary type.  This operation
+is now redundant since it is the same as <code>kjDict(S)</code>.)
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>G.tclosure()</code></th></tr><tr><td bgcolor="#ffffff">
+generates the transitive closure graph 
+derived from the graph <code>G.</code>  
+For example:
+<pre>
+  >>> G = kjGraph([(1, 3), (4, 1), (3, 0), (3, 1)])
+  >>> G.tclosure()
+  kjGraph([(1, 3), (4, 1), (1, 0), (1, 1), (4, 3), 
+           (3, 0), (3, 1), (3, 3), (4, 0)]
+</pre>
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.Clean()</code></th></tr><tr><td bgcolor="#ffffff">
+produces None if table <code>X</code> has experienced a non-monotone
+update (a deletion or a dictionary key collision) or was
+algebraically derived from a table that had experienced a
+non-monotone update, in all other cases it returns the table
+<code>X</code> itself.  This is particularly useful for testing whether
+the unions of dictionaries or the transpose of a dictionary
+was unambiguous.
+<pre>
+   >>> D = kjDict([('name', 'A. Watters'), ('ssn', 123)])
+   >>> D2 = kjDict([('ssn', 999), ('salary', 9000000)])
+   >>> D3 = D + D2; print D3
+   kjDict([('name', 'A. Watters'), ('ssn', 999), ('salary', 9000000)])
+   if D3.Clean() != None:
+   ...    print D3["name"], " makes ", D3["salary"]
+   ... else:
+   ...    print "ambiguous dictionary union"
+   ...
+   ambiguous dictionary union
+</pre>
+Relational natural join anyone?
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>X.Wash(), X.Soil()</th></tr><tr><td bgcolor="#ffffff">
+force a table to appear to be clean or dirty respectively, both
+returning <code>None</code>.  Included for completeness.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>D.remap(X)</code></th></tr><tr><td bgcolor="#ffffff">
+produces a dictionary that is the result of remapping
+D by X, but it produces None if the remapping causes
+a key collision.  For example to rename keys <code>l</code> and
+<code>f</code> to <code>lname</code> and <code>fname</code> respectively, preserving
+<code>ssn</code>, equating <code>ssn</code> with <code>enum</code>, and disregarding
+all other keys for D we could write.
+<pre>
+   >>> D = kjDict( [("f","aaron"), ("l","watters"), ("m","robert"), 
+                    ("ssn",123)] )
+   >>> G = kjGraph()
+   >>> G["ssn"]="enum"
+   >>> G = (G + ~G).tclosure() # symmetric and transitive closure
+   >>> G["lname"] = "l"; G["fname"] = "f"
+   >>> D.remap(G)
+   kjDict([('enum', 123), ('ssn', 123), ('lname', 'watters'), 
+           ('fname', 'aaron')])
+</pre>
+This may seem strange, but it can be a very useful way
+of transforming collections of dictionaries.
+This operation is exactly the same as
+<code>kjDict(X*D).Clean()</code> but faster.  (I use
+it a lot, so I optimized it -- it can correspond
+to projection, equality selection, and renaming in
+the relational algebra).  
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>D.dump(X)</code> </th></tr><tr><td bgcolor="#ffffff">
+packs right members of a dictionary into a compact form.
+This function has two behaviors:
+<pre>
+   >>> D = kjUndump(("name","age","ssn"), ("aaron",12,12345))
+   >>> D
+   kjDict([('name', 'aaron'), ('age', 12), ('ssn', 12345)])
+   >>> D.dump(("ssn",))
+   12345
+   >>> D.dump(("name","ssn"))
+   ('aaron', 12345)
+</pre>
+Called with an argument of form
+<pre>
+    D.dump( (key,) )
+</pre>
+(ie, a tuple of length one) it produces the same result as
+<pre>
+    D[key]
+</pre>
+Alternatively, called with an argument of form
+<pre>
+    D.undump( (k1, k2, ..., kn) )
+</pre>
+(ie, a tuple of length greater than one) it produces that same
+result as
+<pre>
+    ( D[k1], D[k2], ..., D[kn] )
+</pre>
+This function is the parallel operation to
+the dictionary initializer <code>kjUndump</code>, which together
+are designed to make it easy to pack and unpack information
+from <code>kjDict</code>s.  It is also defined on graphs, in which
+case the choice of for the resulting mapped items may be
+arbitrary.
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>len(X)</code></th></tr><tr><td bgcolor="#ffffff">
+return the number of entries in X (which is the
+number of pairs in the case of
+graphs or dictionaries).
+
+</td></tr><tr><th valign="top" bgcolor="#ddff11"><code>del X[key]</code></th></tr><tr><td bgcolor="#ffffff">
+deletes the key from the structure.  In the case of sets, this
+simply removes an element.  In the case of dictionaries and graphs
+this method removes <em>all</em> entries with left member <code>key.</code>
+For example:
+<pre>
+  >>> G = kjGraph([(1, 3), (4, 1), (3, 0), (3, 1)])
+  >>> del G[3]
+  >>> G
+  kjGraph([(1, 3), (4, 1)])
+</pre>
+This is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+</table>
+
+<h2>Hashing</h2>
+<p>
+These types are hashable, that is, they may
+be used as keys in hash structures and you may apply the
+function <code>hash(X)</code> to them.  The <code>kjGraph</code>
+and <code>kjDict</code> structures also allow
+hashing even if some of their right members are unhashable.
+The ``down side'' of this ``hashing unhashables'' feature is
+that if two structures of the same type only differ on their
+unhashable right members they will hash to the same value --
+which can make hash table look-ups slow.  A ``rule of thumb''
+is to only use <code>kjDict</code>s and <code>kjGraph</code>s as keys of
+a hash table structure if the set of keys is expected to 
+nearly always differ
+on hashable components.
+<p>
+<strong> However, once a table's
+hash value has been computed for any reason, that table becomes
+immutable -- any attempts to mutate the structure in place
+(using index assignment, <code>del</code>, 
+<code>X.delete_arc</code>, or <code>X.add</code>)
+will raise a <code>TypeError</code>.</strong>
+
+<h2>Other Properties</h2>
+<p>
+Objects of these types may be compared
+for equality where <code>X==Y</code> succeeds if and only if X and Y
+contain the same members.  Mixed type equality comparisons 
+between kj-tables are
+allowed, where if <code>S==D</code> succeeds if and only if <code>D</code>
+consists of the pairs <code>(e,e)</code> for each element <code>e</code>
+of <code>S</code>, and similarly for <code>S==G</code>.
+<p>
+Objects of these types may also be
+used as booleans where only an empty structure is equivalent to
+false.
+<p>
+One questionable aspect of the implementation is the use of 
+the indexing notation.  Although it may be completely avoided,
+both kjSets and kjGraphs allow indexing.  In the case of sets
+<code>S[object]=anything</code> inserts the <code>object</code> as a member of the
+set and disregards <code>anything</code>, and a retrieval <code>S[object]</code>
+returns 1 if <code>object</code> is a member of the set or raises an
+key error otherwise.  For example,
+<pre>
+  >>> S
+  kjSet([1, 3, 2])
+  >>> S["this"] = "that"
+  >>> S
+  kjSet([1, 3, 2, 'this'])
+  >>> S["this"]
+  1
+  >>> S["that"]
+  KeyError: that
+</pre>
+In the case of graphs <code>G[object]=map</code> adds <code>(object, map)</code>
+as a new arc of the graph, and <code>G[object]</code> retrieves an
+arbitrary neighbor associated with  <code>object</code>, or raises
+a KeyError if there is none.  For example:
+<pre>
+  >>> G
+  kjGraph([(1, 3), (4, 1)])
+  >>> G[1] = 9
+  >>> G
+  kjGraph([(1, 3), (4, 1), (1, 9)])
+  >>> G[1]
+  3
+  >>> G[6]
+  KeyError: 6
+</pre>
+Some may find this use of indexing notation non-intuitive, but
+others may find it appealing, as far as I know.
+<p>
+Index assignment is an ``in place'' mutation operation -- it will raise an
+error if the object has been hashed.
+
+<h2>Algebraic Operations</h2>
+<p>
+The implementation provides a number of common set theoretical
+operations over these structures.  All the set algebraic operations
+are side effect free (and they may be applied to tables which have
+been hashed).  These operations may be applied to tables with
+differing types, except where noted.  
+Except for
+intersection and difference, a binary operation applied to objects
+of different types produces an object of the ``more general'' type,
+i.e, 
+<code>S+D</code> produces a (possibly dirty) dictionary,
+<code>S+G</code> produces a graph,
+<code>D+G</code> produces a graph.
+Binary operations applied to objects of the same type produces
+an object of that type.
+<p>
+Generally, when a set <code>S</code>
+is used in permitted mixed-mode algebra with a graph or a dictionary it
+``acts like'' the identity dictionary <code>S.ident()</code>.  
+<p>
+The built in algebraic operations are as follows.
+<table border cellspacing=5 bgcolor="#aa9944">
+<tr><th valign="top" bgcolor="#ddff11">Union</th></tr><tr><td bgcolor="#ffffff">
+produces the union of two structures of the same type, invoked
+using either the notation <code>X+Y</code> or <code>X|Y</code>.  For example:
+<pre>
+   >>> kjGraph([(1,3), (4,1), (1,9)]) + kjSet([6,7,2])
+   kjGraph([(1, 3), (4, 1), (1, 9), (6, 6), (7, 7), (2, 2)])
+</pre>
+If dictionary <code>D1</code> contains <code>(key, map1)</code> and
+dictionary (or set) <code>D2</code> contains <code>(key, map2)</code> then
+<code>D1+D2</code> will be a dirty dictionary containing
+one of the pairs, but not the
+other.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Difference</th></tr><tr><td bgcolor="#ffffff">
+produces the set difference of two structures of the same type,
+invoked using the notation <code>X-Y</code>.  For example:
+<pre>
+  >>> kjSet([1,2,5,7]) - kjSet([1,2,4,8])
+  kjSet([7, 5])
+</pre>
+Differences of graphs and dictionaries are allowed, where
+<code>X-Y</code> produces an object of the same type as <code>X</code>,
+but mixed differences are not allowed when one of the arguments
+is a set (yet).
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Composition</th></tr><tr><td bgcolor="#ffffff">
+with notation <code>G1*G2</code> produces the graph containing
+<code>(s1,d2)</code> whenever there is an arc
+<code>(s1,d1)</code> in <code>G1</code> and an arc
+<code>(d1,d2)</code> in <code>G2}.  For example:
+<pre>
+  >>> G1 = kjGraph([(0, 1), (1, 2), (3, 0), (3, 4), (2, 3)])
+  >>> G2 = kjGraph([(4, 0), (0, 1), (1, 2), (3, 1), (2, 0)])
+  >>> G1*G2
+  kjGraph([(0, 2), (1, 0), (3, 1), (3, 0), (2, 1)])
+</pre>
+Any two tables can be composed, producing an object of the
+more general type.  Composing two sets is a slower way to
+compute their intersection.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Transposition</th></tr><tr><td bgcolor="#ffffff">
+with notation <code>~G</code> produces the graph containing
+<code>(d, s)</code> if and only if G contains <code>(s, d)</code>.
+for example
+<pre>
+  >>> G = kjGraph([(0, 0), (3, 2), (6, 4), (20, 1), (23, 3), (26, 5)])
+  >>> ~G
+  kjGraph([(0, 0), (4, 6), (1, 20), (3, 23), (2, 3), (5, 26)])
+</pre>
+Transposition is defined for dictionaries, but 
+if there are key collisions the winning pair will be decided
+arbitrarily and the resulting table will be dirty.
+For example,
+<pre>
+  >>> ~kjDict([("hello","hi"), ("hola","hi"), ("beat it","bye")])
+  kjDict([('bye', 'beat it'), ('hi', 'hola')])
+</pre>
+This operation is not defined for sets.
+</td></tr><tr><th valign="top" bgcolor="#ddff11">Intersection</th></tr><tr><td bgcolor="#ffffff">
+produces the set intersection of two structures 
+invoked using the notation <code>X&amp;Y</code>.  For example:
+<pre>
+  >>> G = kjGraph([(0,0), (3,2), (6,4), (20,1), (23,3), (26,5), (2,23)])
+  >>> G & ~G.tclosure()
+  kjGraph([(0, 0), (3, 2), (23, 3), (2, 23)])
+</pre>
+Mixed mode intersections between graphs and dictionaries are allowed
+<em>producing the less general dictionary type</em>.  Mixed mode
+intersections where one of the arguments is a set is not permitted.
+</table>
+<p>
+<strong>Note:</strong>
+The graph and dictionary operations of composition, reachability,
+transitive closure,
+and transposition assume that ``right members'' (values) are
+hashable.  If any right member is not hashable these functions may
+raise a <code>TypeError</code>, for example
+<pre>
+  >>> X = kjGraph([ (1,{}) ])
+  >>> ~X
+  TypeError: unhashable type
+</pre>
+Here the empty Python dictionary is not a hashable type, so it could
+not be used in the transposed graph as a left member.
+
+<h2>On performance</h2>
+<p>
+These structures use a hash table based representation which should
+deliver expected good performance for many applications.
+Nevertheless, as with all hash implementations there is a
+theoretical possibility of very bad worst case performance.
+Furthermore, inserts and deletes occasionally cause the
+internal structure to resize, so although the average speed for
+inserts and deletes is expected to be ``near constant'', once
+in a while an insert or delete may be slow.
+<p>
+In addition, since the kjGraph implementation hashes using the
+left member only from each graph arc, graphs where many nodes have
+a very large number of neighbors may have poor access times.  In this
+case it may appropriate to use a ``set of pairs'' 
+or a ``dict of sets'' representation
+in place of a kjGraph, if this is possible, or some alternative
+implementation.
+<p>
+The implementation of <code>G.tclosure</code> is 
+``quick and dirty (keep it simple, stupid)''
+and leaves much room for speed improvements.  It may be
+slow for large and complex graphs.  If this is a problem
+I might be enticed to improve it, let me know.
+<p>
+Someday I'd like to make the deletion operations faster
+(by a constant factor),
+but I'm not highly motivated here since I personally tend
+to build up tables without ever deleting anything.
+
+<h2>Miscellaneous comments</h2>
+<p>
+Once again I'd like to commend Guido and the other Python
+contributors on their work.  It's a delight to know that
+Python is nice both at the front end and at the back end.
+<p>
+The package is written in C but
+descends from an ancestor (not suitable for public
+viewing) which was written exclusively in Python.  I wrote
+this module (1) as an experimented in extending Python using
+C and (2) as an experiment in migrating a Python implementation
+to a C implementation.  The result is a package which
+I hope may be useful to someone.  
+<p>
+This release is about twice as fast as previous releases thanks to
+permiscuous use of C macros in the implementation.  Additionally,
+mixed-type operations, coercions, and a few additional methods have
+been added in this release.
+<p>
+There is one defined constant in the C code you might
+want to play with: <code>GSIZE</code> -- the number of
+elements of the table heaped together in one ``lump''
+(i.e, the size of an unordered subarray of the table).
+Roughly speaking if
+<code>GSIZE</code> is large the table will resize less often, and usually
+use space more efficiently.  Generally speaking
+larger values will also make the accesses slower, but with
+a value less than around 64 this may not always be true on some
+machines with fancy memory caching (just guessing here, really).
+The default value is 6, which works pretty well on my machines.
+<code>GSIZE</code> also represents the basic size allocated for the
+smallest possible table, so if you expect to use lots of small
+sets a large GSIZE may not be advisable.
+Don't fiddle with the other constants unless you are willing
+to debug possible problems that may result.
+
+<h2>Bugs</h2>
+<p>
+Release 2 had a hole in the initializers that caused undefined
+behavior.  It has been fixed in 2.1.
+<p>
+Release 2.1 wouldn't link under Python 1.2.  This has been
+fixed in 2.2.
+<p>
+The first release would crash on certain graph operations
+(transpose, reachability, composition, transitive closure)
+applied to graphs that contained unhashable nodes.  Now they raise
+an error instead.  Previous releases also had a serious bug
+that sometimes corrupted the internal structure of kjSets.
+I don't know of any remaining ``real'' bugs
+-- the rest of this section discusses possibly confusing
+``features.''
+<p>
+As mentioned above in several places, structures that have
+been hashed may not be subsequently modified -- attempts to modify
+hashed structures will raise <code>TypeError</code>.
+<p>
+Mixed mode differences and intersections are not allowed when
+one of the arguments is a set (as mentioned).
+<p>
+Some unions and transposes on dictionaries will produce a
+dirty dictionary if there are key collisions, and the key
+collisions will be decided arbitrarily.  Similarly,
+coercing a graph to a dictionary will produce a dirty dictionary
+if there are key collisions.  See the section on Dirtiness
+above.
+<p>
+The <code>kjGraph</code> implementation does not represent nodes
+with no edges.  Programmers may work around this either by
+wrapping the graph in a class with a node set, or by 
+adopting some appropriate
+convention that I leave to their infinitely creative imaginations.
+<p>
+Please let me know if you find some other bug or confusing
+feature.  At this point
+I consider the package to be reasonably well tested, but I
+offer <strong>no warrantees</strong>.
+<p>
+<p>
+<TABLE BGCOLOR="#FFFFFF">
+  <TR>
+      <TD><a href="/crew/aaron_watters"><em>humble servant</em></a></TD>
+    </TR>
+  <CAPTION ALIGN="bottom"></CAPTION>
+  </TABLE>
+
+</body></html>

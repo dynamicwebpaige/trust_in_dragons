@@ -1,0 +1,125 @@
+<!-- extend base layout -->
+
+{% block content %}
+<!-- 
+<script type="text/javascript">
+function set_openid(openid, pr)
+{
+    u = openid.search('<username>');
+    if (u != -1) {
+        // openid requires username
+        user = prompt('Enter your ' + pr + ' username:');
+        openid = openid.substr(0, u) + user;
+    }
+    form = document.forms['login'];
+    form.elements['openid'].value = openid;
+}
+</script>
+-->
+
+  <head>
+    <meta charset="utf-8">
+    <title>Trust in Dragons</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Donate to your favorite non-profit project and keep track of their accountability in a rewarding environment">
+    <meta name="author" content="Paige, Christine, Jess and Prashant">
+
+    <!-- Le styles
+    <link href="css/bootstrap.css" rel="stylesheet">-->
+<link type="text/css" href="static/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+
+    </style>
+ <!--   <link href="css/bootstrap-responsive.css" rel="stylesheet"> -->
+<link "text/css" href="static/css/bootstrap-responsive.css" rel="stylesheet">
+
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../assets/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">TrustInDragons</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#campaign">Start campaign</a></li>
+              <li><a href="#">Projects</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+            <form class="navbar-form pull-right">
+              <button type="submit" class="btn">Sign in</button>
+            </form>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+        <div class="page-header">
+        <h1>Trust in Dragons<small> <br>Donate to your favorite non-profit and keep track of accountability in a rewarding environment!</small></h1>
+        </div>
+   
+      <p>Trust in Dragons is a powerful means of funding local and global projects.<br>Ensure that your funding is going toward meaningful projects, and the resources needed to fund them.<br>Join Trust in Dragons today!</p>
+    <div class="row">
+    <div class="span4"> <img src="static/resources/images/donate.png"></div>
+    <div class="span4"><img src="static/resources/images/play.png"></div>
+    <div class="span4"><img src="static/resources/images/track.png"></div>
+  </div>
+  
+      <div class="progress">
+      <div class="bar bar-success" style="width: 60%;"></div>
+      <div class="bar bar-danger" style="width: 40%;"></div>
+      <span>"$2,000</span>
+      </div>
+      
+    <br> <br> 
+
+      <footer>
+        <p>&copy; TrustInDragons 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+
+     <!-- Le javascript
+     ================================================== -->
+     <!-- Placed at the end of the document so the pages load faster -->
+     <script src="../static/js/jquery.js"></script>
+     <script src="../static/js/transition.js"></script>
+     <script src="../static/js/alert.js"></script>
+     <script src="../static/js/modal.js"></script>
+     <script src="../static/js/dropdown.js"></script>
+     <script src="../static/js/scrollspy.js"></script>
+     <script src="../static/js/tab.js"></script>    
+     <script src="../static/js/tooltip.js"></script>
+     <script src="../static/js/popover.js"></script>
+     <script src="../static/js/button.js"></script>
+     <script src="../static/js/collapse.js"></script>
+     <script src="../static/js/carousel.js"></script>
+     <script src="../static/js/typeahead.js"></script>
+
+
+  </body>
+{% endblock %}
+
+
