@@ -8,7 +8,7 @@ s = sendgrid.Sendgrid('profoundlypaige', 'B4ttleH4ck', secure=True)
 
 # make a message object
 #Sender
-message = sendgrid.Message("noreply@trustthedragons.com", "B4ttleH4ck", "Howdy!", "HTML Body Exmaple. You %(name)s just made a donation of 20 golden eggs to the dragons.")
+message = sendgrid.Message("noreply@trustthedragons.com", "B4ttleH4ck", "Howdy, y'all!", "HTML Body Exmaple. You %(name)s just made a donation of 20 golden eggs to the dragons.")
 
 # placeholder for usernames + emails
 # Receiver
